@@ -1,9 +1,9 @@
--- Запрос для подсчета общего количества покупателей
+--запрос для подсчета общего количества покупателей
 
 select COUNT(customer_id) as customers_count
 from customers;
 --------------------
---топ-10 лучших продавцов
+--отчет о топ-10 лучших продавцов и объеме их выручки
 
 with full_employees as (select employee_id, CONCAT(first_name,' ', last_name) as seller
 from employees)
@@ -17,7 +17,7 @@ group by fe.seller
 order by income desc
 limit 10;
 -----------------------
---отчет с продавцами, чья выручка ниже средней выручки всех продавцов
+--отчет о продавцах, чья выручка ниже средней выручки среди всех продавцов
 
 with full_employees as (select employee_id, CONCAT(first_name,' ', last_name) as seller
 from employees),
@@ -45,12 +45,9 @@ order by average_income;
 with full_employees as (select employee_id, CONCAT(first_name,' ', last_name) as seller
 from employees),
 
-
-sales_with_days as (select seller, sale_date, 
-case extract(dow from sale_date)::int
-when 0 then 7
-else extract(dow from sale_date)::int
-end as week_day, 
+sales_with_days as (
+select seller, sale_date, 
+extract(isodow from sale_date) as week_day, 
 s.quantity * p.price as day_income
 from full_employees fe
 join sales s on fe.employee_id = s.sales_person_id
@@ -62,7 +59,7 @@ group by seller,to_char(sale_date, 'day'), week_day
 order by week_day;
 
 -------------------------------------------
---отчет с данными о количестве покупателей в разных возрастных группах: 16-25, 26-40 и 40+
+--отчет о количестве покупателей в разных возрастных группах: 16-25, 26-40 и 40+
 
 select '16-25' as age_category, count(customer_id) as age_count
 from customers
