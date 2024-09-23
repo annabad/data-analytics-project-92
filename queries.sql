@@ -139,7 +139,26 @@ order by selling_month;
 ----------------------------------------------
 --отчет о покупателях, первая покупка которых состоялась в ходе проведения акций
 
-with full_customers as (
+with cust_min_dates as (
+    select distinct
+        customer_id,
+        MIN(sale_date)
+            over (partition by customer_id order by sale_date)
+        as sale_date
+    from sales
+),
+
+cust_with_0 as (
+    select distinct
+        customer_id,
+        MIN(sale_date)
+            over (partition by customer_id order by sale_date)
+        as sale_date
+    from sales as s
+    inner join products as p on s.product_id = p.product_id where price = 0
+),
+
+full_customers as (
     select
         customer_id,
         CONCAT(first_name, ' ', last_name) as customer
@@ -153,33 +172,36 @@ full_employees as (
     from employees
 ),
 
-sales_with_0 as (
+special_customers as (
     select
-        s.customer_id,
-        customer,
-        sale_date,
-        seller
-    from sales as s
-    inner join full_customers on s.customer_id = full_customers.customer_id
-inner join full_employees as fe on s.sales_person_id = fe.employee_id
-inner join products using (product_id) where price = 0
+        t1.customer_id,
+        t1.sale_date
+    from cust_min_dates as t1
+    inner join
+        cust_with_0 as t2
+        on t1.customer_id = t2.customer_id and t1.sale_date = t2.sale_date
 ),
 
-sales_with_0_min_date as (
-select distinct
-    customer_id,
-    customer,
-    seller,
-    MIN(sale_date) over (partition by customer order by sale_date) as sale_date
-from sales_with_0
+
+tab_full_names as (
+    select
+        sc.customer_id,
+        customer,
+        sc.sale_date,
+        seller
+    from special_customers as sc
+    inner join full_customers on sc.customer_id = full_customers.customer_id
+inner join
+    sales as s
+    on sc.customer_id = s.customer_id and sc.sale_date = s.sale_date
+inner join full_employees as fe on s.sales_person_id = fe.employee_id
 )
 
-select
-	customer,
-	sale_date,
-	seller
-from sales_with_0_min_date
-order by customer_id;
+select distinct
+customer,
+sale_date,
+seller
+from tab_full_names;
 
 
 
