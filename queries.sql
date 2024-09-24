@@ -19,7 +19,7 @@ select
 from
     full_employees as fe
 inner join sales as s on fe.employee_id = s.sales_person_id
-inner join products as p using (product_id)
+inner join products as p on s.product_id = p.product_id
 group by fe.seller
 order by income desc
 limit 10;
@@ -34,7 +34,7 @@ with full_employees as (
     from employees
 ),
 
-avg_incoms as (
+avg_incomes as (
     select
         fe.seller,
         COUNT(sale_date) as operations,
@@ -43,7 +43,7 @@ avg_incoms as (
     from
         full_employees as fe
     inner join sales as s on fe.employee_id = s.sales_person_id
-    inner join products as p using (product_id)
+    inner join products as p on s.product_id = p.product_id
     group by fe.seller
     order by average_income desc
 )
@@ -51,12 +51,12 @@ avg_incoms as (
 select
     seller,
     average_income
-from avg_incoms
-where average_income < (select AVG(average_income) from avg_incoms)
+from avg_incomes
+where average_income < (select AVG(average_income) from avg_incomes)
 order by average_income;
 
 --------------------------------
---отчет об объеме выручки по каждому продавцу и дню недели
+--отчет об объемах выручки по каждому продавцу и дню недели
 
 with full_employees as (
     select
@@ -67,13 +67,13 @@ with full_employees as (
 
 sales_with_days as (
     select
-        seller,
-        sale_date,
-        EXTRACT(isodow from sale_date) as week_day,
+        fe.seller,
+        s.sale_date,
+        EXTRACT(isodow from s.sale_date) as week_day,
         s.quantity * p.price as day_income
     from full_employees as fe
     inner join sales as s on fe.employee_id = s.sales_person_id
-    inner join products as p using (product_id)
+    inner join products as p on s.product_id = p.product_id
 )
 
 select
@@ -90,7 +90,7 @@ order by week_day;
 
 select
     '16-25' as age_category,
-    count(customer_id) as age_count
+    COUNT(customer_id) as age_count
 from customers
 where age between 16 and 25
 
@@ -98,7 +98,7 @@ union
 
 select
     '26-40' as age_category,
-    count(customer_id) as age_count
+    COUNT(customer_id) as age_count
 from customers
 where age between 26 and 40
 
@@ -106,7 +106,7 @@ union
 
 select
     '40+' as age_category,
-    count(customer_id) as age_count
+    COUNT(customer_id) as age_count
 from customers
 where age > 40
 order by age_category;
@@ -116,10 +116,10 @@ order by age_category;
 
 with tab as (
     select
-        extract(year from sale_date) as year_date,
-        extract(month from sale_date) as month_date,
-        count(distinct customer_id) as total_customers,
-        floor(sum(quantity * price)) as income
+        EXTRACT(year from sale_date) as year_date,
+        EXTRACT(month from sale_date) as month_date,
+        COUNT(distinct customer_id) as total_customers,
+        FLOOR(SUM(quantity * price)) as income
     from sales
     inner join products on sales.product_id = products.product_id
 group by 1, 2
@@ -127,19 +127,34 @@ order by 1, 2
 )
 
 select
-total_customers,
-income,
+	total_customers,
+	income,
 case
-    when month_date < 10 then concat(year_date, '-0', month_date)
-    else concat(year_date, '-', month_date)
-end as selling_month
+    when month_date < 10 then CONCAT(year_date, '-0', month_date)
+    else CONCAT(year_date, '-', month_date)
+end 
+	as selling_month
 from tab
 order by selling_month;
 
 ----------------------------------------------
 --отчет о покупателях, первая покупка которых состоялась в ходе проведения акций
 
-with cust_min_dates as (
+with full_customers as (
+    select
+        customer_id,
+        CONCAT(first_name, ' ', last_name) as customer
+    from customers
+),
+
+full_employees as (
+    select
+        employee_id,
+        CONCAT(first_name, ' ', last_name) as seller
+    from employees
+),
+
+cust_min_dates as (
     select distinct
         customer_id,
         MIN(sale_date)
@@ -158,19 +173,6 @@ cust_with_0 as (
     inner join products as p on s.product_id = p.product_id where price = 0
 ),
 
-full_customers as (
-    select
-        customer_id,
-        CONCAT(first_name, ' ', last_name) as customer
-    from customers
-),
-
-full_employees as (
-    select
-        employee_id,
-        CONCAT(first_name, ' ', last_name) as seller
-    from employees
-),
 
 special_customers as (
     select
@@ -186,22 +188,20 @@ special_customers as (
 tab_full_names as (
     select
         sc.customer_id,
-        customer,
+        sc.customer,
         sc.sale_date,
-        seller
+        fe.seller
     from special_customers as sc
-    inner join full_customers on sc.customer_id = full_customers.customer_id
-inner join
-    sales as s
-    on sc.customer_id = s.customer_id and sc.sale_date = s.sale_date
+    inner join full_customers as fc on sc.customer_id = fc.customer_id
+inner join sales as s on sc.customer_id = s.customer_id and sc.sale_date = s.sale_date
 inner join full_employees as fe on s.sales_person_id = fe.employee_id
 )
 
 select distinct
-customer,
-sale_date,
-seller
-from tab_full_names;
+	tfn.customer,
+	tfn.sale_date,
+	tfn.seller
+from tab_full_names as ten;
 
 
 
