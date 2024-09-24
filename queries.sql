@@ -14,7 +14,7 @@ with full_employees as (
 
 select
     fe.seller,
-    COUNT(sale_date) as operations,
+    COUNT(s.sale_date) as operations,
     FLOOR(SUM(s.quantity * p.price)) as income
 from
     full_employees as fe
@@ -37,9 +37,9 @@ with full_employees as (
 avg_incomes as (
     select
         fe.seller,
-        COUNT(sale_date) as operations,
+        COUNT(s.sale_date) as operations,
         FLOOR(SUM(s.quantity * p.price)) as income,
-        FLOOR(SUM(s.quantity * p.price) / COUNT(sale_date)) as average_income
+        FLOOR(SUM(s.quantity * p.price) / COUNT(s.sale_date)) as average_income
     from
         full_employees as fe
     inner join sales as s on fe.employee_id = s.sales_person_id
@@ -116,24 +116,23 @@ order by age_category;
 
 with tab as (
     select
-        EXTRACT(year from sale_date) as year_date,
-        EXTRACT(month from sale_date) as month_date,
-        COUNT(distinct customer_id) as total_customers,
-        FLOOR(SUM(quantity * price)) as income
-    from sales
-    inner join products on sales.product_id = products.product_id
-group by 1, 2
-order by 1, 2
+        EXTRACT(year from s.sale_date) as year_date,
+        EXTRACT(month from s.sale_date) as month_date,
+        COUNT(distinct s.customer_id) as total_customers,
+        FLOOR(SUM(s.quantity * p.price)) as income
+    from sales as s
+    inner join products as p on s.product_id = p.product_id
+	group by year_date, month_date
+	order by year_date, month_date
 )
 
 select
 	total_customers,
 	income,
-case
-    when month_date < 10 then CONCAT(year_date, '-0', month_date)
-    else CONCAT(year_date, '-', month_date)
-end 
-	as selling_month
+	case
+    	when month_date < 10 then CONCAT(year_date, '-0', month_date)
+    	else CONCAT(year_date, '-', month_date)
+	end as selling_month
 from tab
 order by selling_month;
 
@@ -165,13 +164,14 @@ cust_min_dates as (
 
 cust_with_0 as (
     select distinct
-        customer_id,
-        MIN(sale_date)
-            over (partition by customer_id order by sale_date)
+        sales.customer_id,
+        MIN(sales.sale_date)
+            over (partition by sales.customer_id order by sales.sale_date)
         as sale_date
     from sales as s
     inner join products as p on s.product_id = p.product_id where price = 0
 ),
+
 
 
 special_customers as (
@@ -193,15 +193,14 @@ tab_full_names as (
         fe.seller
     from special_customers as sc
     inner join full_customers as fc on sc.customer_id = fc.customer_id
-inner join sales as s on sc.customer_id = s.customer_id and sc.sale_date = s.sale_date
-inner join full_employees as fe on s.sales_person_id = fe.employee_id
+	inner join sales as s on sc.customer_id = s.customer_id 
+		and sc.sale_date = s.sale_date
+	inner join full_employees as fe on s.sales_person_id = fe.employee_id
 )
 
 select distinct
 	tfn.customer,
 	tfn.sale_date,
 	tfn.seller
-from tab_full_names as ten;
-
-
+from tab_full_names as tfn;
 
