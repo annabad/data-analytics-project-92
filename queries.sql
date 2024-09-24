@@ -203,6 +203,3 @@ select distinct
     tfn.sale_date,
     tfn.seller
 from tab_full_names as tfn;
-
-
-
