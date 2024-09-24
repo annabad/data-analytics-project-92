@@ -193,7 +193,7 @@ tab_full_names as (
         fe.seller
     from special_customers as sc
     inner join full_customers as fc on sc.customer_id = fc.customer_id
-    inner join sales as s 
+    inner join sales as s
         on sc.customer_id = s.customer_id and sc.sale_date = s.sale_date
     inner join full_employees as fe on s.sales_person_id = fe.employee_id
 )
@@ -202,6 +202,5 @@ select distinct
     tfn.customer,
     tfn.sale_date,
     tfn.seller
-from tab_full_names as tfn
-;
+from tab_full_names as tfn;
 
