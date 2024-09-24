@@ -122,17 +122,17 @@ with tab as (
         FLOOR(SUM(s.quantity * p.price)) as income
     from sales as s
     inner join products as p on s.product_id = p.product_id
-	group by year_date, month_date
-	order by year_date, month_date
+    group by year_date, month_date
+    order by year_date, month_date
 )
 
 select
-	total_customers,
-	income,
-	case
-    	when month_date < 10 then CONCAT(year_date, '-0', month_date)
-    	else CONCAT(year_date, '-', month_date)
-	end as selling_month
+    total_customers,
+    income,
+    case
+        when month_date < 10 then CONCAT(year_date, '-0', month_date)
+        else CONCAT(year_date, '-', month_date)
+    end as selling_month
 from tab
 order by selling_month;
 
@@ -169,7 +169,7 @@ cust_with_0 as (
             over (partition by sales.customer_id order by sales.sale_date)
         as sale_date
     from sales as s
-    inner join products as p on s.product_id = p.product_id where price = 0
+    inner join products as p on s.product_id = p.product_id where p.price = 0
 ),
 
 
@@ -193,14 +193,15 @@ tab_full_names as (
         fe.seller
     from special_customers as sc
     inner join full_customers as fc on sc.customer_id = fc.customer_id
-	inner join sales as s on sc.customer_id = s.customer_id 
-		and sc.sale_date = s.sale_date
-	inner join full_employees as fe on s.sales_person_id = fe.employee_id
+    inner join sales as s 
+        on sc.customer_id = s.customer_id and sc.sale_date = s.sale_date
+    inner join full_employees as fe on s.sales_person_id = fe.employee_id
 )
 
 select distinct
-	tfn.customer,
-	tfn.sale_date,
-	tfn.seller
-from tab_full_names as tfn;
+    tfn.customer,
+    tfn.sale_date,
+    tfn.seller
+from tab_full_names as tfn
+;
 
