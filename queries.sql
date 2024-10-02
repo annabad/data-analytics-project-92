@@ -23,14 +23,15 @@ limit 10;
 select
     CONCAT(e.first_name, ' ', e.last_name) as seller,
     FLOOR(AVG(s.quantity * p.price)) as average_income
-from employees as e 
+from employees as e
 inner join sales as s on e.employee_id = s.sales_person_id
 inner join products as p on s.product_id = p.product_id
 group by e.employee_id
-having AVG(s.quantity * p.price) < (
-    select AVG(sales.quantity * products.price)
-    from sales
-    inner join products on sales.product_id = products.product_id
+having 
+    AVG(s.quantity * p.price) < (
+        select AVG(sales.quantity * products.price)
+        from sales
+        inner join products on sales.product_id = products.product_id
     )
 order by average_income;
 
@@ -50,13 +51,13 @@ order by EXTRACT(isodow from s.sale_date), seller;
 -------------------------------------------
 --отчет о количестве покупателей в разных возрастных группах: 16-25, 26-40 и 40+
 
-select 
-case 
-	when age between 16 and 25 then '16-25'
-	when age between 26 and 40 then '26-40'
-	when age > 40 then '40+'
-end as age_category,
-COUNT(customer_id) as age_count
+select
+    case
+	    when age between 16 and 25 then '16-25'
+	    when age between 26 and 40 then '26-40'
+	    when age > 40 then '40+'
+    end as age_category,
+    COUNT(customer_id) as age_count
 from customers
 group by age_category
 order by age_category;
@@ -67,7 +68,8 @@ order by age_category;
 select
     COUNT(distinct s.customer_id) as total_customers,
     FLOOR(SUM(s.quantity * p.price)) as income,
-    CONCAT(to_char(s.sale_date, 'YYYY'), '-', to_char(s.sale_date, 'MM')) as selling_month 
+    CONCAT(TO_CHAR(s.sale_date, 'YYYY'), '-', TO_CHAR(s.sale_date, 'MM'))
+    as selling_month
 from sales as s
 inner join products as p on s.product_id = p.product_id
 group by selling_month 
@@ -76,16 +78,13 @@ order by selling_month;
 ----------------------------------------------
 --отчет о покупателях, первая покупка которых состоялась в ходе проведения акций
 
-select DISTINCT ON (customer)
+select distinct on (c.customer_id)
     CONCAT(c.first_name, ' ', c.last_name) as customer,
     s.sale_date,
     CONCAT(e.first_name, ' ', e.last_name) as seller
-
 from customers as c
 inner join sales as s on c.customer_id = s.customer_id
 inner join employees as e on s.sales_person_id = e.employee_id
-inner join products as p on s.product_id = p.product_id 
+inner join products as p on s.product_id = p.product_id
 where p.price = 0
-group by 1, 2, 3;
-
-
+group by customer, s.sale_date, seller;
