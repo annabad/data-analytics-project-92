@@ -79,8 +79,8 @@ order by selling_month;
 --отчет о покупателях, первая покупка которых состоялась в ходе проведения акций
 
 select distinct on (c.customer_id)
-    CONCAT(c.first_name, ' ', c.last_name) as customer,
     s.sale_date,
+    CONCAT(c.first_name, ' ', c.last_name) as customer,
     CONCAT(e.first_name, ' ', e.last_name) as seller
 from customers as c
 inner join sales as s on c.customer_id = s.customer_id
